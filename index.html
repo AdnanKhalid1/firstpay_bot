@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Customer Service Chatbot Demo</title>
+  <style>
+    body { font-family: sans-serif; max-width: 600px; margin: 20px auto; }
+    h1 { text-align: center; }
+    #chat { border: 1px solid #ccc; padding: 10px; height: 400px; overflow-y: scroll; margin-bottom: 10px; }
+    .message { margin: 5px 0; }
+    .user { color: blue; text-align: right; }
+    .bot { color: green; text-align: left; }
+    #inputContainer { display: flex; }
+    #userInput { flex: 1; padding: 10px; }
+    #sendBtn { padding: 10px; }
+  </style>
+</head>
+<body>
+  <h1>Customer Service Chatbot Demo</h1>
+  <div id="chat"></div>
+  <div id="inputContainer">
+    <input type="text" id="userInput" placeholder="Type your question..." />
+    <button id="sendBtn">Send</button>
+  </div>
+  <script>
+    const chat = document.getElementById('chat');
+    const userInput = document.getElementById('userInput');
+    const sendBtn = document.getElementById('sendBtn');
+
+    async function sendMessage() {
+      const query = userInput.value.trim();
+      if (!query) return;
+      addMessage(query, 'user');
+      userInput.value = '';
+
+      // We will use the Hugging Face API endpoint to send the query
+      // According to your Hugging Face Space, the endpoint is something like:
+      // POST https://adnankhd-fpfaqbotdemo.hf.space/run/predict with a JSON body: {"data": [query]}
+      
+      // Note: The API returns streaming results, but we can just wait for the final result.
+      // Let's do a simple POST and then poll for results as per Hugging Face instructions.
+
+      const response = await fetch("https://adnankhd-fpfaqbotdemo.hf.space/run/predict", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ data: [query] })
+      });
+
+      // The initial response contains a job ID we need to follow-up on
+      const result = await response.json();
+      // The result should contain a structure with an event_id we can use
+      // But according to the docs for the stable gradio_client endpoint, we might get a direct result.
+      // Let's try the direct result approach first:
+      //
+      // If direct result is returned like: { data: ["Chatbot answer"] }
+      // We can just get answer from result.data[0]
+
+      // If the above doesn't work, we may need to implement a two-step call (event_id).
+      // Let's first assume that the direct call returns final result:
+      const answer = result.data[0]; 
+      addMessage(answer, 'bot');
+    }
+
+    sendBtn.addEventListener('click', sendMessage);
+    userInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') sendMessage();
+    });
+
+    function addMessage(text, role) {
+      const msg = document.createElement('div');
+      msg.classList.add('message', role);
+      msg.textContent = (role === 'user' ? 'You: ' : 'Bot: ') + text;
+      chat.appendChild(msg);
+      chat.scrollTop = chat.scrollHeight;
+    }
+  </script>
+</body>
+</html>
